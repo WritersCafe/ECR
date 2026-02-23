@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Evidence → Commentary → Sort → Bubble Map (ECR Builder)</title>
+<style>
+  :root{
+    --bg:#f7f5f2;
+    --card:#ffffff;
+    --ink:#1f2937;
+    --muted:#6b7280;
+
+    /* Your locked colors */
+    --evidence:#d62424;    /* red */
+    --commentary:#1c8f4a;  /* green */
+
+    /* Category colors (NOT blue/green) */
+    --guidance:#f59e0b;    /* amber */
+    --growth:#a855f7;      /* purple */
+
+    --line:#e5e7eb;
+    --shadow:0 10px 24px rgba(0,0,0,.08);
+    --radius:16px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#fbfaf8, #f3efe8);
+    color:var(--ink);
+  }
+
+  header{
+    position:sticky; top:0; z-index:10;
+    background:rgba(251,250,248,.92);
+    backdrop-filter: blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:14px 16px}
+  .title{
+    display:flex; gap:10px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+  }
+  .title h1{
+    margin:0; font-size:18px; letter-spacing:.2px;
+  }
+  .title p{
+    margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.3;
+  }
+  .pillrow{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .pill{
+    font-size:12px; padding:7px 10px; border:1px solid var(--line);
+    background:#fff; border-radius:999px;
+  }
+  .pill b{font-weight:700}
+  .pill .r{color:var(--evidence); font-weight:800}
+  .pill .g{color:var(--commentary); font-weight:800}
+  .pill .a{color:var(--guidance); font-weight:800}
+  .pill .p{color:var(--growth); font-weight:800}
+
+  .tabs{display:flex; gap:8px; padding:10px 16px 14px; max-width:1100px; margin:0 auto}
+  .tabbtn{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:10px 12px;
+    border-radius:12px;
+    font-size:13px;
+    cursor:pointer;
+    box-shadow:0 2px 10px rgba(0,0,0,.04);
+  }
+  .tabbtn[aria-selected="true"]{
+    outline:2px solid rgba(31,41,55,.15);
+    font-weight:700;
+  }
+
+  main{max-width:1100px; margin:0 auto; padding:14px 16px 30px}
+  .grid{
+    display:grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap:14px;
+  }
+  @media (max-width: 900px){
+    .grid{grid-template-columns:1fr}
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .card .hd{
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:linear-gradient(180deg,#fff,#fbfbfb);
+  }
+  .hd h2{margin:0;font-size:14px}
+  .hd small{color:var(--muted)}
+  .card .bd{padding:12px 14px}
+  .hint{color:var(--muted); font-size:12px; line-height:1.35}
+
+  .prompt{
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px dashed var(--line);
+    background:#fffaf2;
+    font-size:13px;
+    line-height:1.35;
+  }
+
+  /* Evidence list */
+  .textbox{
+    height:340px;
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:10px;
+    background:#fcfcfc;
+  }
+  .sent{
+    padding:10px 10px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin:8px 0;
+    cursor:pointer;
+    user-select:none;
+    background:#fff;
+  }
+  .sent:hover{outline:2px solid rgba(245,158,11,.15)}
+  .sent .meta{font-size:11px;color:var(--muted); margin-bottom:6px}
+  .sent.selected{
+    outline:2px solid rgba(214,36,36,.25);
+    border-color:rgba(214,36,36,.35);
+    background:#fff5f5;
+  }
+
+  /* Evidence + commentary table */
+  table{width:100%; border-collapse:separate; border-spacing:0 10px}
+  th{
+    text-align:left;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+    padding:0 8px;
+  }
+  td{
+    vertical-align:top;
+    padding:0 8px;
+  }
+  .rowcard{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:10px;
+    background:#fff;
+  }
+  .evi{
+    border-left:6px solid var(--evidence);
+  }
+  .com{
+    border-left:6px solid var(--commentary);
+  }
+  .evi b{color:var(--evidence)}
+  .com b{color:var(--commentary)}
+  .rowcard p{margin:6px 0 0; font-size:13px; line-height:1.35}
+  select, button, input{
+    font:inherit;
+  }
+  select{
+    width:100%;
+    padding:10px 10px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:#fff;
+  }
+  .btn{
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .btn.primary{
+    border-color:rgba(31,41,55,.2);
+    background:#111827;
+    color:#fff;
+  }
+  .btn.warn{
+    border-color:rgba(214,36,36,.25);
+    background:#fff;
+    color:var(--evidence);
+    font-weight:700;
+  }
+  .btn:active{transform:translateY(1px)}
+
+  /* Sort phase */
+  .twoCols{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  @media (max-width: 700px){
+    .twoCols{grid-template-columns:1fr}
+  }
+
+  .zone{
+    border:2px dashed rgba(0,0,0,.12);
+    border-radius:16px;
+    min-height:160px;
+    padding:10px;
+    background:#fff;
+  }
+  .zone.guidance{border-color:rgba(245,158,11,.5); background:rgba(245,158,11,.06)}
+  .zone.growth{border-color:rgba(168,85,247,.5); background:rgba(168,85,247,.06)}
+  .zone h3{
+    margin:0 0 8px; font-size:13px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .tag{
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:11px;
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+  }
+  .tag.guidance{color:var(--guidance); font-weight:800}
+  .tag.growth{color:var(--growth); font-weight:800}
+
+  .pairCard{
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:#fff;
+    padding:10px;
+    margin:8px 0;
+    cursor:grab;
+  }
+  .pairCard:active{cursor:grabbing}
+  .pairCard .topline{
+    display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+    font-size:12px; color:var(--muted);
+  }
+  .pairCard .e{
+    margin:8px 0 0; font-size:13px; line-height:1.35;
+    border-left:6px solid var(--evidence); padding-left:10px;
+  }
+  .pairCard .c{
+    margin:8px 0 0; font-size:13px; line-height:1.35;
+    border-left:6px solid var(--commentary); padding-left:10px;
+  }
+
+  /* Bubble map */
+  .bubbleArea{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+  .bubbles{
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:14px;
+    background:linear-gradient(180deg,#fff,#fbfbfb);
+  }
+  .bubbleRow{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    align-items:stretch;
+  }
+  .bubble{
+    flex:1 1 260px;
+    border:2px solid rgba(0,0,0,.12);
+    border-radius:999px;
+    padding:14px 14px;
+    background:#fff;
+    position:relative;
+    min-height:86px;
+  }
+  .bubble.big{
+    flex:1 1 360px;
+    min-height:110px;
+    border-radius:999px;
+  }
+  .bLabel{
+    position:absolute;
+    top:-10px; left:18px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:#fff;
+    border:1px solid var(--line);
+    font-size:11px;
+    color:var(--muted);
+  }
+  .bLabel strong{color:var(--ink)}
+  .bubble .inner{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+  }
+  .bubble .inner .left{
+    flex:1 1 220px;
+    min-width:220px;
+  }
+
+  .uWrap{
+    font-size:13px;
+    line-height:1.35;
+  }
+  .uWrap .u{
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+  }
+  .uWrap .btag{
+    display:inline-block;
+    margin-right:6px;
+    padding:2px 6px;
+    border-radius:999px;
+    font-size:11px;
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    color:var(--muted);
+    vertical-align:middle;
+  }
+  .btag.b1{border-color:rgba(245,158,11,.35)}
+  .btag.b2{border-color:rgba(168,85,247,.35)}
+
+  .paraBuild{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+    margin-top:10px;
+  }
+  @media (max-width: 900px){
+    .paraBuild{grid-template-columns:1fr}
+  }
+  .miniZone{
+    border:2px dashed rgba(0,0,0,.12);
+    border-radius:14px;
+    padding:10px;
+    min-height:110px;
+    background:#fff;
+  }
+  .miniZone h4{
+    margin:0 0 6px;
+    font-size:12px;
+    color:var(--muted);
+    display:flex; gap:8px; align-items:center;
+  }
+  .miniZone .k{
+    display:inline-block;
+    padding:2px 7px;
+    border-radius:999px;
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    font-size:11px;
+  }
+  .k.r{color:var(--evidence); font-weight:800}
+  .k.g{color:var(--commentary); font-weight:800}
+
+  .chip{
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:7px 10px;
+    margin:6px 6px 0 0;
+    display:inline-block;
+    background:#fff;
+    cursor:grab;
+    font-size:12px;
+    max-width:100%;
+  }
+  .chip.r{border-left:6px solid var(--evidence)}
+  .chip.g{border-left:6px solid var(--commentary)}
+  .chip:active{cursor:grabbing}
+
+  /* Modal */
+  .modalBack{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    z-index:50;
+  }
+  .modal{
+    max-width:560px;
+    width:100%;
+    background:#fff;
+    border-radius:18px;
+    border:1px solid var(--line);
+    box-shadow:0 16px 40px rgba(0,0,0,.25);
+    overflow:hidden;
+  }
+  .modal .mh{
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; gap:10px; align-items:center;
+    background:linear-gradient(180deg,#fff,#fbfbfb);
+  }
+  .modal .mh b{font-size:14px}
+  .modal .mb{padding:12px 14px; font-size:13px; line-height:1.45}
+  .modal .mf{padding:12px 14px; border-top:1px solid var(--line); display:flex; justify-content:flex-end}
+  .xbtn{border:1px solid var(--line); background:#fff; border-radius:10px; padding:6px 10px; cursor:pointer}
+
+  /* utility */
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .sp{justify-content:space-between}
+  .hidden{display:none !important}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <div class="title">
+      <div>
+        <h1>Evidence → Commentary → Sort → Bubble Map (ECR Builder)</h1>
+        <p>Click evidence sentences (🟥) → choose matching commentary (🟩) → sort into <b>Guidance</b> and <b>Growth</b> → build thesis + Body 1 / Body 2 plan.</p>
+      </div>
+      <div class="pillrow">
+        <div class="pill"><span class="r">🟥</span> <b>Concrete Detail</b></div>
+        <div class="pill"><span class="g">🟩</span> <b>Commentary</b></div>
+        <div class="pill"><span class="a">🟧</span> <b>Category A:</b> Guidance</div>
+        <div class="pill"><span class="p">🟪</span> <b>Category B:</b> Growth</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Activity Tabs">
+    <button class="tabbtn" role="tab" id="tab-1" aria-selected="true" aria-controls="panel-1">1) Collect + Match</button>
+    <button class="tabbtn" role="tab" id="tab-2" aria-selected="false" aria-controls="panel-2">2) Sort</button>
+    <button class="tabbtn" role="tab" id="tab-3" aria-selected="false" aria-controls="panel-3">3) Bubble Map</button>
+  </div>
+</header>
+
+<main>
+  <!-- Panel 1 -->
+  <section id="panel-1" role="tabpanel" aria-labelledby="tab-1">
+    <div class="grid">
+      <div class="card">
+        <div class="hd">
+          <h2>Text (Click a sentence to add as evidence)</h2>
+          <small>Scroll • Click = add</small>
+        </div>
+        <div class="bd">
+          <div class="prompt" id="promptBox">
+            <b>Prompt:</b> How does Coach Ramirez’s relationship with Eli influence Eli’s growth?
+          </div>
+          <p class="hint" style="margin:10px 0 8px;">
+            <b>Laser Look-for #1:</b> Where does Coach choose guidance instead of punishment?<br/>
+            <b>Laser Look-for #2:</b> Where is Eli tested (he could react poorly) but chooses better?<br/>
+            <b>Laser Look-for #3:</b> What does Eli realize because of Coach?
+          </p>
+          <div class="textbox" id="textSentences"></div>
+          <p class="hint" style="margin-top:10px;">
+            Teacher note: You can edit the text sentences and paragraph numbers inside the code under <b>TEXT_SENTENCES</b>.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <h2>🟥 Evidence + 🟩 Commentary Builder</h2>
+          <small>Build 3–4 pairs</small>
+        </div>
+        <div class="bd">
+          <div class="row sp" style="margin-bottom:10px;">
+            <button class="btn" id="btnAddBlank">+ Add blank row</button>
+            <button class="btn warn" id="btnClearAll">Reset</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:52%">🟥 Concrete Detail (auto-fills when you click text)</th>
+                <th style="width:48%">🟩 Match the best commentary</th>
+              </tr>
+            </thead>
+            <tbody id="pairRows"></tbody>
+          </table>
+
+          <div class="row sp" style="margin-top:12px;">
+            <button class="btn primary" id="btnToSort">Lock pairs → Go to Sort</button>
+            <span class="hint" id="pairStatus">0 complete pair(s)</span>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+          <p class="hint">
+            <b>Why commentary matters:</b> Evidence = what happened. Commentary = why it matters (influence + change).
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Panel 2 -->
+  <section id="panel-2" role="tabpanel" aria-labelledby="tab-2" class="hidden">
+    <div class="card">
+      <div class="hd">
+        <h2>Sort your pairs into categories</h2>
+        <small>Drag each evidence+commentary card into Guidance or Growth</small>
+      </div>
+      <div class="bd">
+        <div class="twoCols">
+          <div class="zone guidance" id="zoneGuidance" data-zone="guidance">
+            <h3><span class="tag guidance">Category A</span> Guidance</h3>
+            <p class="hint" style="margin:0 0 8px;">
+              <b>Body 1 hint:</b> This paragraph will focus on <b>leadership</b>, <b>support</b>, <b>direction</b>, <b>mentorship</b>.
+            </p>
+            <div id="guidanceList"></div>
+          </div>
+
+          <div class="zone growth" id="zoneGrowth" data-zone="growth">
+            <h3><span class="tag growth">Category B</span> Growth</h3>
+            <p class="hint" style="margin:0 0 8px;">
+              <b>Body 2 hint:</b>This paragraph will focus on <b>maturity</b>, <b>responsibility</b>, <b>improvement</b>, <b>accountability</b>.
+            </p>
+            <div id="growthList"></div>
+          </div>
+        </div>
+
+        <div class="row sp" style="margin-top:14px;">
+          <button class="btn" id="btnBackToPairs">← Back</button>
+          <button class="btn primary" id="btnToBubbles">Continue → Bubble Map</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="hd">
+        <h2>Unsorted Pairs</h2>
+        <small>These still need a category</small>
+      </div>
+      <div class="bd">
+        <div id="unsortedList"></div>
+        <p class="hint" style="margin-top:10px;">
+          Tip: If a pair shows what Coach does/says to guide Eli → <b>Guidance</b>. If it shows Eli’s changed choices/actions → <b>Growth</b>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Panel 3 -->
+  <section id="panel-3" role="tabpanel" aria-labelledby="tab-3" class="hidden">
+    <div class="card">
+      <div class="hd">
+        <h2>Bubble Map Builder</h2>
+        <small>Thesis → Topic Sentences → Evidence/Commentary → Concluding Sentence</small>
+      </div>
+      <div class="bd bubbleArea">
+
+        <div class="prompt">
+          <b>Reminder:</b> Your thesis should borrow words from the prompt and include <b>guidance</b> + <b>growth/change</b>.<br/>
+          Your topic sentences will use <b>contextual synonyms</b> (like leadership, mentorship, maturity, responsibility).
+        </div>
+
+        <div class="bubbles">
+          <div class="bubbleRow">
+            <div class="bubble big">
+              <div class="bLabel"><strong>Thesis = Answer</strong> (borrow from prompt)</div>
+              <div class="inner">
+                <div class="left">
+                  <select id="thesisSelect"></select>
+                </div>
+                <button class="btn" id="whyThesis">Why these words?</button>
+              </div>
+            </div>
+
+            <div class="bubble">
+              <div class="bLabel"><strong>TS</strong> (Body 1)</div>
+              <div class="inner">
+                <div class="left">
+                  <select id="ts1Select"></select>
+                  <div class="uWrap" id="ts1Preview" style="margin-top:8px;"></div>
+                </div>
+                <button class="btn" id="whyTS1">Why this synonym?</button>
+              </div>
+            </div>
+
+            <div class="bubble">
+              <div class="bLabel"><strong>TTS</strong> (Body 2)</div>
+              <div class="inner">
+                <div class="left">
+                  <select id="ts2Select"></select>
+                  <div class="uWrap" id="ts2Preview" style="margin-top:8px;"></div>
+                </div>
+                <button class="btn" id="whyTS2">Why this synonym?</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="paraBuild">
+            <div class="miniZone" id="b1ZoneEvidence" data-accept="chip-r">
+              <h4><span class="k r">🟥</span> Body 1 Evidence (Guidance)</h4>
+              <div id="b1Evidence"></div>
+            </div>
+            <div class="miniZone" id="b1ZoneCommentary" data-accept="chip-g">
+              <h4><span class="k g">🟩</span> Body 1 Commentary</h4>
+              <div id="b1Commentary"></div>
+            </div>
+            <div class="miniZone">
+              <h4>Body 1 Concluding Sentence</h4>
+              <select id="b1Conclude"></select>
+              <div class="row sp" style="margin-top:10px;">
+                <button class="btn" id="checkB1">Check My Connection</button>
+              </div>
+              <p class="hint" style="margin-top:8px;">
+                This sentence should connect back to your <b>Body 1 topic sentence</b> (guidance → leadership/support/mentorship).
+              </p>
+            </div>
+
+            <div class="miniZone" id="b2ZoneEvidence" data-accept="chip-r">
+              <h4><span class="k r">🟥</span> Body 2 Evidence (Growth)</h4>
+              <div id="b2Evidence"></div>
+            </div>
+            <div class="miniZone" id="b2ZoneCommentary" data-accept="chip-g">
+              <h4><span class="k g">🟩</span> Body 2 Commentary</h4>
+              <div id="b2Commentary"></div>
+            </div>
+            <div class="miniZone">
+              <h4>Body 2 Concluding Sentence</h4>
+              <select id="b2Conclude"></select>
+              <div class="row sp" style="margin-top:10px;">
+                <button class="btn" id="checkB2">Check My Connection</button>
+              </div>
+              <p class="hint" style="margin-top:8px;">
+                This sentence should connect back to your <b>Body 2 topic sentence</b> (growth → maturity/responsibility/change).
+              </p>
+            </div>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+          <div class="row sp">
+            <button class="btn" id="btnBackToSort">← Back</button>
+            <button class="btn primary" id="btnFinish">Finish</button>
+          </div>
+          <p class="hint" style="margin-top:10px;">
+            Drag the 🟥 and 🟩 chips into the right Body 1 / Body 2 boxes. Use the “Check My Connection” buttons to see feedback.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal -->
+<div class="modalBack" id="modalBack" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="mh">
+      <b id="modalTitle">Feedback</b>
+      <button class="xbtn" id="closeModal" aria-label="Close">✕</button>
+    </div>
+    <div class="mb" id="modalBody"></div>
+    <div class="mf">
+      <button class="btn primary" id="okModal">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   EDITABLE CONTENT BANKS
+   ========================= */
+
+/* Clickable text sentences (short “one-page” set for the activity).
+   You can expand this list. Keep it simple for Canva.
+*/
+const TEXT_SENTENCES = [
+  {p:1, t:"Eli hated staying after practice."},
+  {p:2, t:"Coach Ramirez stood near the equipment shed, arms crossed."},
+  {p:3, t:"Coach said, “You know why I asked you to stay.”"},
+  {p:4, t:"Coach replied, “No. Because you blamed Mateo for it.”"},
+  {p:5, t:"Coach sat down beside Eli."},
+  {p:6, t:"“You’re talented,” Coach said, “but talent doesn’t carry a team. Character does.”"},
+  {p:7, t:"Coach wasn’t angry; he looked disappointed."},
+  {p:8, t:"Coach shared a story about blaming a teammate when he was younger."},
+  {p:9, t:"“Blaming someone else feels good for about five seconds,” Coach said."},
+  {p:10, t:"Coach said, “Tomorrow, you’ll decide what kind of teammate you want to be.”"},
+  {p:11, t:"The next day, the ball came to Eli again."},
+  {p:12, t:"For a split second, Eli hesitated."},
+  {p:13, t:"Then he passed. Mateo scored."},
+  {p:14, t:"Eli clapped Mateo on the shoulder and said, “Nice finish.”"},
+  {p:15, t:"After practice, Eli apologized: “Sorry about yesterday.”"},
+  {p:16, t:"Eli realized winning felt different when everyone was part of it."}
+];
+
+/* Commentary bank (students match best commentary to evidence) */
+const COMMENTARY_BANK = [
+  "This shows Coach guides Eli calmly instead of punishing him, so Eli can reflect.",
+  "Coach focuses on character, teaching Eli what really matters on a team.",
+  "Coach’s disappointment pushes Eli to think about his choices and their impact.",
+  "Coach’s personal story builds trust and helps Eli accept the lesson.",
+  "Eli’s hesitation shows a test moment—he can choose pride or teamwork.",
+  "Passing the ball shows Eli is changing and prioritizing the team.",
+  "Apologizing shows Eli takes responsibility, proving real growth.",
+  "Eli realizes success feels better when he supports others, not blame them."
+];
+
+/* Thesis bank: BORROW words from prompt + include guidance + growth/change */
+const THESIS_BANK = [
+  "Coach Ramirez’s relationship with Eli influences Eli’s growth through guidance and change.",
+  "Coach Ramirez’s relationship with Eli influences Eli’s growth because his guidance leads to positive change.",
+  "Coach Ramirez’s relationship with Eli influences Eli’s growth by providing guidance that results in growth.",
+  "Coach Ramirez’s relationship with Eli influences Eli’s growth as his guidance causes meaningful change."
+];
+
+/* Topic sentence banks: include underlined category words w/ B1/B2 tags.
+   (Students see how B1/B2 map to Body 1 and Body 2.)
+*/
+const TS1_BANK = [
+  {plain:"Coach Ramirez’s guidance (B1) through leadership helps Eli reflect on his actions.",
+   html:`Coach Ramirez’s <span class="btag b1">B1</span><span class="u">guidance</span> through <span class="u">leadership</span> helps Eli reflect on his actions.`},
+  {plain:"Coach Ramirez’s guidance (B1) becomes mentorship that shapes Eli’s character.",
+   html:`Coach Ramirez’s <span class="btag b1">B1</span><span class="u">guidance</span> becomes <span class="u">mentorship</span> that shapes Eli’s character.`},
+  {plain:"Coach Ramirez’s guidance (B1) shows support that helps Eli accept accountability.",
+   html:`Coach Ramirez’s <span class="btag b1">B1</span><span class="u">guidance</span> shows <span class="u">support</span> that helps Eli accept accountability.`},
+  {plain:"Coach Ramirez’s guidance (B1) offers direction that helps Eli make better choices.",
+   html:`Coach Ramirez’s <span class="btag b1">B1</span><span class="u">guidance</span> offers <span class="u">direction</span> that helps Eli make better choices.`}
+];
+
+const TS2_BANK = [
+  {plain:"As a result, Eli shows growth (B2) by demonstrating maturity and responsibility.",
+   html:`As a result, Eli shows <span class="btag b2">B2</span><span class="u">growth</span> by demonstrating <span class="u">maturity</span> and <span class="u">responsibility</span>.`},
+  {plain:"Because of Coach’s influence, Eli shows change (B2) through improved teamwork.",
+   html:`Because of Coach’s influence, Eli shows <span class="btag b2">B2</span><span class="u">change</span> through improved <span class="u">teamwork</span>.`},
+  {plain:"Eli’s growth (B2) becomes clear when he chooses accountability over blame.",
+   html:`Eli’s <span class="btag b2">B2</span><span class="u">growth</span> becomes clear when he chooses <span class="u">accountability</span> over blame.`},
+  {plain:"Eli’s change (B2) shows development as he learns to support others.",
+   html:`Eli’s <span class="btag b2">B2</span><span class="u">change</span> shows <span class="u">development</span> as he learns to support others.`}
+];
+
+/* Concluding sentence banks (drag/drop not necessary; pick from dropdown) */
+const CONCLUDE_B1 = [
+  "Through this guidance, Coach begins shaping Eli’s character.",
+  "Coach’s leadership lays the foundation for Eli’s growth.",
+  "This support helps Eli reflect instead of becoming defensive."
+];
+const CONCLUDE_B2 = [
+  "These actions prove Eli has begun to change.",
+  "Eli’s choices reflect the lesson he learned from Coach.",
+  "His behavior shows the impact of Coach’s influence."
+];
+
+/* =========================
+   STATE
+   ========================= */
+let activeTab = 1;
+let pairs = []; // {id, p, evidenceText, commentaryText, locked, zone: 'unsorted'|'guidance'|'growth'}
+let nextPairId = 1;
+let currentTargetRowId = null; // which row gets filled by click
+
+/* =========================
+   HELPERS
+   ========================= */
+function qs(sel){return document.querySelector(sel)}
+function qsa(sel){return Array.from(document.querySelectorAll(sel))}
+function esc(s){return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+function showModal(title, bodyHtml){
+  qs("#modalTitle").textContent = title;
+  qs("#modalBody").innerHTML = bodyHtml;
+  qs("#modalBack").style.display = "flex";
+}
+function closeModal(){
+  qs("#modalBack").style.display = "none";
+}
+
+function setTab(n){
+  activeTab = n;
+  // toggle panels
+  qs("#panel-1").classList.toggle("hidden", n!==1);
+  qs("#panel-2").classList.toggle("hidden", n!==2);
+  qs("#panel-3").classList.toggle("hidden", n!==3);
+  // aria selected
+  qs("#tab-1").setAttribute("aria-selected", n===1 ? "true" : "false");
+  qs("#tab-2").setAttribute("aria-selected", n===2 ? "true" : "false");
+  qs("#tab-3").setAttribute("aria-selected", n===3 ? "true" : "false");
+}
+
+function countCompletePairs(){
+  return pairs.filter(p => (p.evidenceText && p.commentaryText)).length;
+}
+
+/* =========================
+   RENDER: TEXT SENTENCES
+   ========================= */
+function renderText(){
+  const box = qs("#textSentences");
+  box.innerHTML = "";
+  TEXT_SENTENCES.forEach((s)=>{
+    const div = document.createElement("div");
+    div.className = "sent";
+    div.dataset.p = String(s.p);
+    div.dataset.text = s.t;
+    div.innerHTML = `<div class="meta">Paragraph ${s.p}</div><div>${esc(s.t)}</div>`;
+    div.addEventListener("click", ()=> onSentenceClick(s.p, s.t, div));
+    box.appendChild(div);
+  });
+}
+
+function onSentenceClick(pno, text, divEl){
+  // choose a target row: either selected row or first row with empty evidence
+  let target = pairs.find(r => r.id === currentTargetRowId);
+  if(!target){
+    target = pairs.find(r => !r.evidenceText);
+  }
+  if(!target){
+    // add a row if none empty
+    addBlankRow();
+    target = pairs.find(r => !r.evidenceText);
+  }
+  target.p = pno;
+  target.evidenceText = text;
+  currentTargetRowId = target.id;
+  renderRows();
+  // highlight click
+  qsa(".sent").forEach(s=>s.classList.remove("selected"));
+  divEl.classList.add("selected");
+}
+
+/* =========================
+   RENDER: PAIR ROWS
+   ========================= */
+function addBlankRow(){
+  pairs.push({
+    id: nextPairId++,
+    p: null,
+    evidenceText: "",
+    commentaryText: "",
+    locked: false,
+    zone: "unsorted"
+  });
+}
+
+function removeRow(id){
+  pairs = pairs.filter(p => p.id !== id);
+  if(currentTargetRowId === id) currentTargetRowId = null;
+  renderRows();
+}
+
+function renderRows(){
+  const tbody = qs("#pairRows");
+  tbody.innerHTML = "";
+
+  pairs.forEach((row)=>{
+    const tr = document.createElement("tr");
+
+    // Evidence cell
+    const tdE = document.createElement("td");
+    const eHtml = `
+      <div class="rowcard evi" data-row="${row.id}">
+        <div class="row sp">
+          <div class="hint"><b style="color:var(--evidence)">🟥 Evidence</b> ${row.p ? `• Paragraph ${row.p}` : ""}</div>
+          <div class="row">
+            <button class="btn" data-act="target">Pick</button>
+            <button class="btn warn" data-act="del">Delete</button>
+          </div>
+        </div>
+        <p>${row.evidenceText ? esc(row.evidenceText) : "<span class='hint'>Click a sentence on the left to add evidence here.</span>"}</p>
+      </div>`;
+    tdE.innerHTML = eHtml;
+
+    // Commentary cell
+    const tdC = document.createElement("td");
+    const opts = ["<option value=''>Choose the best commentary…</option>"]
+      .concat(COMMENTARY_BANK.map(c => `<option value="${esc(c)}" ${row.commentaryText===c ? "selected":""}>${esc(c)}</option>`))
+      .join("");
+    tdC.innerHTML = `
+      <div class="rowcard com">
+        <div class="hint"><b style="color:var(--commentary)">🟩 Commentary</b></div>
+        <div style="margin-top:8px;">
+          <select data-row="${row.id}" class="commentarySelect">
+            ${opts}
+          </select>
+        </div>
+        <p class="hint" style="margin-top:10px;">
+          Commentary = explain how the evidence shows <b>guidance</b> OR <b>growth/change</b>.
+        </p>
+      </div>`;
+
+    tr.appendChild(tdE);
+    tr.appendChild(tdC);
+    tbody.appendChild(tr);
+
+    // row actions
+    const card = tdE.querySelector(".rowcard");
+    card.querySelector("[data-act='target']").addEventListener("click", ()=>{
+      currentTargetRowId = row.id;
+      showModal("Row Selected", "Now click a sentence from the text to fill this evidence box.");
+    });
+    card.querySelector("[data-act='del']").addEventListener("click", ()=> removeRow(row.id));
+
+    // commentary select
+    tdC.querySelector(".commentarySelect").addEventListener("change", (e)=>{
+      const id = Number(e.target.getAttribute("data-row"));
+      const r = pairs.find(x => x.id === id);
+      r.commentaryText = e.target.value || "";
+      updatePairStatus();
+    });
+  });
+
+  updatePairStatus();
+}
+
+function updatePairStatus(){
+  const n = countCompletePairs();
+  qs("#pairStatus").textContent = `${n} complete pair(s)`;
+}
+
+/* =========================
+   SORT PHASE
+   ========================= */
+function renderSort(){
+  const uns = qs("#unsortedList");
+  const gl = qs("#guidanceList");
+  const gr = qs("#growthList");
+
+  uns.innerHTML = "";
+  gl.innerHTML = "";
+  gr.innerHTML = "";
+
+  pairs.forEach(p=>{
+    if(!(p.evidenceText && p.commentaryText)) return; // only completed pairs can be sorted
+
+    const card = document.createElement("div");
+    card.className = "pairCard";
+    card.draggable = true;
+    card.id = "pair-" + p.id;
+    card.dataset.pid = String(p.id);
+    card.innerHTML = `
+      <div class="topline">
+        <span>Pair #${p.id} • Paragraph ${p.p||"—"}</span>
+        <span class="hint">drag →</span>
+      </div>
+      <div class="e"><b style="color:var(--evidence)">🟥</b> ${esc(p.evidenceText)}</div>
+      <div class="c"><b style="color:var(--commentary)">🟩</b> ${esc(p.commentaryText)}</div>
+    `;
+
+    card.addEventListener("dragstart", (e)=>{
+      e.dataTransfer.setData("text/plain", String(p.id));
+    });
+
+    if(p.zone === "guidance") gl.appendChild(card);
+    else if(p.zone === "growth") gr.appendChild(card);
+    else uns.appendChild(card);
+  });
+
+  // set up zones dragover/drop
+  const zones = [qs("#zoneGuidance"), qs("#zoneGrowth"), qs("#unsortedList")];
+  zones.forEach(z=>{
+    z.addEventListener("dragover", (e)=>{e.preventDefault();});
+  });
+
+  qs("#zoneGuidance").addEventListener("drop", (e)=>{
+    e.preventDefault();
+    const id = Number(e.dataTransfer.getData("text/plain"));
+    const p = pairs.find(x=>x.id===id);
+    if(p) p.zone = "guidance";
+    renderSort();
+    renderBubbleChips();
+  });
+  qs("#zoneGrowth").addEventListener("drop", (e)=>{
+    e.preventDefault();
+    const id = Number(e.dataTransfer.getData("text/plain"));
+    const p = pairs.find(x=>x.id===id);
+    if(p) p.zone = "growth";
+    renderSort();
+    renderBubbleChips();
+  });
+  qs("#unsortedList").addEventListener("drop", (e)=>{
+    e.preventDefault();
+    const id = Number(e.dataTransfer.getData("text/plain"));
+    const p = pairs.find(x=>x.id===id);
+    if(p) p.zone = "unsorted";
+    renderSort();
+    renderBubbleChips();
+  });
+}
+
+/* =========================
+   BUBBLE MAP
+   ========================= */
+function fillSelect(sel, arr){
+  sel.innerHTML = "";
+  arr.forEach((t,i)=>{
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = t;
+    sel.appendChild(opt);
+  });
+}
+function fillSelectObj(sel, arr){
+  sel.innerHTML = "";
+  arr.forEach((o,i)=>{
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = o.plain;
+    sel.appendChild(opt);
+  });
+}
+
+function renderBubbleUI(){
+  // thesis
+  fillSelect(qs("#thesisSelect"), THESIS_BANK);
+  // TS selects
+  fillSelectObj(qs("#ts1Select"), TS1_BANK);
+  fillSelectObj(qs("#ts2Select"), TS2_BANK);
+
+  // previews
+  const renderPreviews = ()=>{
+    const i1 = Number(qs("#ts1Select").value || 0);
+    const i2 = Number(qs("#ts2Select").value || 0);
+    qs("#ts1Preview").innerHTML = TS1_BANK[i1].html;
+    qs("#ts2Preview").innerHTML = TS2_BANK[i2].html;
+  };
+  qs("#ts1Select").addEventListener("change", renderPreviews);
+  qs("#ts2Select").addEventListener("change", renderPreviews);
+  renderPreviews();
+
+  // conclude dropdowns
+  fillSelect(qs("#b1Conclude"), CONCLUDE_B1);
+  fillSelect(qs("#b2Conclude"), CONCLUDE_B2);
+
+  // “Why” buttons (contextual synonym explanation)
+  qs("#whyThesis").addEventListener("click", ()=>{
+    showModal("Why the thesis uses these words",
+      `<p>The thesis borrows words from the prompt to start the answer clearly, then adds <b>guidance</b> + <b>growth/change</b> so your essay has two clear body paragraphs.</p>
+       <p class="hint"><b>Structure:</b> Relationship influences → <b>guidance</b> (Body 1) → <b>growth/change</b> (Body 2).</p>`
+    );
+  });
+
+  qs("#whyTS1").addEventListener("click", ()=>{
+    showModal("Why we use a contextual synonym (Body 1)",
+      `<p><b>Guidance</b> is the category word, but your topic sentence uses a more specific form of guidance (like <b>leadership</b>, <b>support</b>, <b>direction</b>, or <b>mentorship</b>).</p>
+       <p>This improves writing because it avoids repetition and explains <i>how</i> the coach guided Eli.</p>`
+    );
+  });
+
+  qs("#whyTS2").addEventListener("click", ()=>{
+    showModal("Why we use a contextual synonym (Body 2)",
+      `<p><b>Growth/change</b> is the category word, but your topic sentence names what growth looks like (like <b>maturity</b>, <b>responsibility</b>, <b>accountability</b>, or <b>teamwork</b>).</p>
+       <p>This improves writing because it makes growth visible and specific.</p>`
+    );
+  });
+
+  // Check connection buttons
+  qs("#checkB1").addEventListener("click", ()=> checkConnection(1));
+  qs("#checkB2").addEventListener("click", ()=> checkConnection(2));
+
+  // finish
+  qs("#btnFinish").addEventListener("click", ()=>{
+    showModal("Nice work!",
+      `<p><b>You built the structure of an ECR.</b></p>
+       <ul>
+         <li>Thesis includes <b>guidance</b> + <b>growth/change</b></li>
+         <li>Body 1 uses evidence about Coach’s guidance (leadership/support/mentorship)</li>
+         <li>Body 2 uses evidence about Eli’s growth (maturity/responsibility/change)</li>
+       </ul>
+       <p class="hint">Next step in class: turn each body section into 4–6 sentences.</p>`
+    );
+  });
+
+  // drag zones for chips
+  setupChipDropZones();
+}
+
+function checkConnection(bodyNum){
+  const which = bodyNum===1 ? "Body 1" : "Body 2";
+  const sel = bodyNum===1 ? qs("#b1Conclude") : qs("#b2Conclude");
+  const chosen = sel.options[sel.selectedIndex].textContent;
+
+  const topicSyn = bodyNum===1
+    ? TS1_BANK[Number(qs("#ts1Select").value||0)].plain
+    : TS2_BANK[Number(qs("#ts2Select").value||0)].plain;
+
+  // Simple “teaches the connection” feedback (always instructive, not punitive)
+  showModal(`${which}: Connection Feedback`,
+    `<p><b>Great job.</b> Your concluding sentence works when it <b>connects back</b> to your topic sentence idea.</p>
+     <p><b>Your topic sentence:</b> ${esc(topicSyn)}</p>
+     <p><b>Your concluding sentence:</b> ${esc(chosen)}</p>
+     <p class="hint">Notice how the conclusion restates the main idea (guidance or growth) in a new way and signals the paragraph is complete.</p>`
+  );
+}
+
+function renderBubbleChips(){
+  // Create draggable chips from sorted pairs
+  const b1E = qs("#b1Evidence"), b1C = qs("#b1Commentary");
+  const b2E = qs("#b2Evidence"), b2C = qs("#b2Commentary");
+
+  // Clear only the "bank" chips in the zones if empty; we won't auto-clear if student placed chips.
+  // For simplicity, we place chips into a hidden “bank” area and let students drag to zones.
+  // We’ll render banks into the Evidence/Commentary zones directly (students can rearrange).
+  // If you want strict behavior (bank separate), tell me and I’ll adjust.
+
+  // If zones are empty, refill. If not empty, do nothing (prevents wiping student work).
+  const zones = [
+    {zone: b1E, want:"guidance", cls:"chip r", kind:"e"},
+    {zone: b1C, want:"guidance", cls:"chip g", kind:"c"},
+    {zone: b2E, want:"growth", cls:"chip r", kind:"e"},
+    {zone: b2C, want:"growth", cls:"chip g", kind:"c"},
+  ];
+
+  zones.forEach(z=>{
+    if(z.zone.dataset.filled === "true") return;
+    z.zone.innerHTML = "";
+    const items = pairs.filter(p => p.zone === z.want && p.evidenceText && p.commentaryText);
+
+    items.forEach(p=>{
+      const chip = document.createElement("div");
+      chip.className = z.cls + (z.kind==="e" ? " chip-r" : " chip-g");
+      chip.draggable = true;
+      chip.dataset.pid = String(p.id);
+      chip.dataset.kind = z.kind; // 'e' or 'c'
+      chip.textContent = z.kind==="e" ? `P${p.p}: ${p.evidenceText}` : p.commentaryText;
+
+      chip.addEventListener("dragstart", (e)=>{
+        e.dataTransfer.setData("text/plain", JSON.stringify({
+          pid: p.id,
+          kind: z.kind
+        }));
+      });
+      z.zone.appendChild(chip);
+    });
+
+    z.zone.dataset.filled = "true";
+  });
+}
+
+function setupChipDropZones(){
+  const dropZones = [qs("#b1ZoneEvidence"), qs("#b1ZoneCommentary"), qs("#b2ZoneEvidence"), qs("#b2ZoneCommentary")];
+  dropZones.forEach(z=>{
+    z.addEventListener("dragover", (e)=> e.preventDefault());
+    z.addEventListener("drop", (e)=>{
+      e.preventDefault();
+      let data;
+      try{ data = JSON.parse(e.dataTransfer.getData("text/plain")); }catch(err){ return; }
+      const accept = z.getAttribute("data-accept"); // 'chip-r' or 'chip-g'
+      const wantKind = accept === "chip-r" ? "e" : "c";
+
+      if(!data || data.kind !== wantKind){
+        showModal("Try again", "That drop zone is for a different type. Put 🟥 evidence in Evidence boxes and 🟩 commentary in Commentary boxes.");
+        return;
+      }
+
+      // create new chip in this zone (do not remove original to keep it simple for Canva users)
+      const newChip = document.createElement("div");
+      newChip.className = "chip " + (wantKind==="e" ? "r chip-r" : "g chip-g");
+      newChip.draggable = true;
+      newChip.textContent = getChipText(data.pid, data.kind);
+      newChip.addEventListener("dragstart", (ev)=>{
+        ev.dataTransfer.setData("text/plain", JSON.stringify(data));
+      });
+
+      const targetList = z.querySelector("div") || z;
+      (z.querySelector("div") || z).appendChild(newChip);
+    });
+  });
+}
+
+function getChipText(pid, kind){
+  const p = pairs.find(x=>x.id===pid);
+  if(!p) return "";
+  return kind==="e" ? `P${p.p}: ${p.evidenceText}` : p.commentaryText;
+}
+
+/* =========================
+   EVENT WIRING
+   ========================= */
+function init(){
+  // tabs
+  qs("#tab-1").addEventListener("click", ()=> setTab(1));
+  qs("#tab-2").addEventListener("click", ()=> setTab(2));
+  qs("#tab-3").addEventListener("click", ()=> setTab(3));
+
+  // modal close
+  qs("#closeModal").addEventListener("click", closeModal);
+  qs("#okModal").addEventListener("click", closeModal);
+  qs("#modalBack").addEventListener("click", (e)=>{
+    if(e.target === qs("#modalBack")) closeModal();
+  });
+
+  // rows controls
+  qs("#btnAddBlank").addEventListener("click", ()=>{
+    addBlankRow();
+    renderRows();
+  });
+  qs("#btnClearAll").addEventListener("click", ()=>{
+    pairs = [];
+    nextPairId = 1;
+    currentTargetRowId = null;
+    renderRows();
+    renderSort();
+    // reset bubble chips zones fill flags
+    ["#b1Evidence","#b1Commentary","#b2Evidence","#b2Commentary"].forEach(id=>{
+      const el = qs(id);
+      if(el){ el.innerHTML=""; el.dataset.filled="false"; }
+    });
+    showModal("Reset", "All rows have been cleared.");
+  });
+
+  // go to sort
+  qs("#btnToSort").addEventListener("click", ()=>{
+    const n = countCompletePairs();
+    if(n < 2){
+      showModal("Not yet", "Build at least <b>2 complete pairs</b> (evidence + commentary) before sorting.");
+      return;
+    }
+    // lock: mark completed as sortable, leave incomplete in builder
+    pairs.forEach(p=>{
+      if(p.evidenceText && p.commentaryText) p.locked = true;
+    });
+    // reset “filled” flags for bubble banks so they populate later
+    ["#b1Evidence","#b1Commentary","#b2Evidence","#b2Commentary"].forEach(id=>{
+      const el = qs(id);
+      if(el){ el.innerHTML=""; el.dataset.filled="false"; }
+    });
+    renderSort();
+    setTab(2);
+  });
+
+  // back to pairs
+  qs("#btnBackToPairs").addEventListener("click", ()=> setTab(1));
+
+  // to bubbles
+  qs("#btnToBubbles").addEventListener("click", ()=>{
+    // require at least one in each category for best practice
+    const g = pairs.filter(p=>p.zone==="guidance" && p.locked).length;
+    const r = pairs.filter(p=>p.zone==="growth" && p.locked).length;
+    if(g < 1 || r < 1){
+      showModal("Keep sorting", "Put at least <b>1 complete pair</b> in <b>Guidance</b> and <b>1 complete pair</b> in <b>Growth</b> before building the bubble map.");
+      return;
+    }
+    renderBubbleUI();
+    renderBubbleChips();
+    setTab(3);
+  });
+
+  // back to sort
+  qs("#btnBackToSort").addEventListener("click", ()=> setTab(2));
+
+  renderText();
+
+  // start with 3 blank rows
+  addBlankRow(); addBlankRow(); addBlankRow();
+  renderRows();
+  renderSort();
+}
+
+init();
+</script>
+</body>
+</html>
